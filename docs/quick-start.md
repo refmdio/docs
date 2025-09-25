@@ -27,21 +27,22 @@
          timeout: 5s
          retries: 5
 
-     api:
-       image: ghcr.io/refmdio/refmd/api:latest
-       environment:
-         RUST_ENV: production
-         API_PORT: 8888
-         DATABASE_URL: postgresql://refmd:refmd@postgres:5432/refmd
-         FRONTEND_URL: https://refmd.example.com
-         JWT_SECRET: change-me-please
-         ENCRYPTION_KEY: change-me-please
-         UPLOAD_MAX_BYTES: 26214400
-         RUST_LOG: api=info,axum=info,tower_http=info
-         PUBLIC_BASE_URL: https://refmd.example.com
-         PLUGINS_DIR: /app/plugins
-       ports:
-         - "8888:8888"
+    api:
+      image: ghcr.io/refmdio/refmd/api:latest
+      environment:
+        RUST_ENV: production
+        API_PORT: 8888
+        DATABASE_URL: postgresql://refmd:refmd@postgres:5432/refmd
+        FRONTEND_URL: https://refmd.example.com
+        BACKEND_URL: https://refmd.example.com
+        JWT_SECRET: change-me-please
+        ENCRYPTION_KEY: change-me-please
+        UPLOAD_MAX_BYTES: 26214400
+        UPLOADS_DIR: /data/uploads
+        PLUGINS_DIR: /app/plugins
+        RUST_LOG: api=info,axum=info,tower_http=info
+      ports:
+        - "8888:8888"
        depends_on:
          postgres:
            condition: service_healthy
@@ -51,8 +52,8 @@
 
      app:
        image: ghcr.io/refmdio/refmd/app:latest
-       environment:
-         VITE_API_BASE_URL: https://refmd.example.com/api
+      environment:
+        VITE_API_BASE_URL: https://refmd.example.com
        ports:
          - "3000:80"
        depends_on:
@@ -67,8 +68,9 @@
 
    Update the environment variables before starting containers:
    - `JWT_SECRET`, `ENCRYPTION_KEY`: replace with strong, random values.
-   - `FRONTEND_URL`, `PUBLIC_BASE_URL`: set to the public domain for the app (`http://localhost:3000` locally, `https://refmd.example.com` in production).
-   - `VITE_API_BASE_URL`: match the API origin exposed to users (e.g. `http://localhost:8888` locally, `https://refmd.example.com/api` behind a proxy).
+  - `FRONTEND_URL`, `BACKEND_URL`: set to the public domain for the app/API (`http://localhost:3000` and `http://localhost:8888` locally, `https://refmd.example.com` in production when reverse proxying `/api`).
+  - Ensure your reverse proxy forwards `/api` on the frontend origin to the API service.
+  - `VITE_API_BASE_URL`: match the external API origin exposed to users (e.g. `http://localhost:8888` locally, `https://refmd.example.com/api` behind a proxy).
 
 3. Start the stack:
    ```bash
