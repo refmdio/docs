@@ -39,7 +39,7 @@ The RefMD editor combines Monaco, Yjs, and custom UI so teams can co-author Mark
 ## Sharing and Publishing
 
 - Open **Share & Publish** from the toolbar or sidebar to generate invite links. Links can be scoped to a single document or an entire folder, carry view/edit/admin permissions, and optionally expire after 1 hour, 24 hours, 7 days, 30 days, or never.
-- Shared links track usage counts so you can monitor how often a token has been used, revoke links at any time, or remove documents from folder shares without touching the originals.
+- Shared links can be revoked individually, and documents can be removed from folder shares without touching the originals, giving you fine-grained control over who keeps access.
 - Published documents get a permanent public URL (for example `https://refmd.io/u/you/doc`) that surfaces on your public profile; toggle publishing on or off per document and copy or open the live page directly from the dialog.
 - Recipients accessing a share token see the same collaborative editor—complete with real-time cursors, preview, and attachments—while public readers experience the simplified public layout.
 

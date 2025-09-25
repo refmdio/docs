@@ -21,4 +21,4 @@ RefMD plugins combine an Extism-powered backend with a browser-based frontend. T
 - [Manifest Specification](manifest.md) details every field in `plugin.json` and how the host interprets it.
 - [Development Guide](development.md) walks through building, packaging, and installing a plugin using the sample repository.
 
-The [`sample-plugin/`](../../sample-plugin/) directory doubles as a living example and is referenced throughout the guides below.
+The [`sample-plugin`](https://github.com/refmdio/sample-plugin) repository doubles as a living example and is referenced throughout the guides below.

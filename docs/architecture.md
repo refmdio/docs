@@ -23,15 +23,15 @@ Browser (React + Monaco) ──> Axum API (Rust)
 - **Markdown**: The `/api/markdown/render` endpoint uses `comrak` + `ammonia` for rendering and sanitisation, then `syntect` for syntax highlighting.
 - **Plugins**: `ExecutePluginAction` orchestrates Extism calls and applies server-side effects (`createDocument`, `putKv`, `createRecord`, `updateRecord`, `deleteRecord`, `navigate`, `log`). Plugin assets are managed by `FilesystemPluginStore`, while installations are tracked per user via the plugin installation repository.
 - **Git sync**: `refmd/api/src/application/use_cases/git/*` wraps the `git2` crate with a vendored libgit2 build so users can init, sync, and inspect diffs from the UI.
-- **Sharing**: `/api/shares` issues scoped tokens for documents or folders, tracks usage counts, and enforces permissions (`view`, `edit`, `admin`) via `access::require_view` / `resolve_document`.
+- **Sharing**: `/api/shares` issues scoped tokens for documents or folders, supports optional expirations, and enforces permissions (`view`, `edit`, `admin`) via `access::require_view` / `resolve_document` checks.
 - **Publishing**: `/api/public` toggles document publication status, exposes `/public/:owner/:id` for read-only pages, and feeds the public profile listings consumed by the frontend.
 - **Files**: Uploads live on disk (configurable path). `GET /api/uploads/*` streams files through `serve_upload`, which re-validates JWT/share tokens before reading from storage; `/api/files/:id` falls back to authenticated downloads when you need the original metadata.
-- **Security**: JWT-based auth with `argon2` password hashing. Share tokens allow read-only access to specific documents.
+- **Security**: JWT-based auth with `argon2` password hashing. Share tokens carry their own permission level and gate access accordingly.
 
 ## Frontend Anatomy
 
 - **Composition**: The app is built with Vite. `src/routes` defines TanStack routes (e.g. `/document/$id`, `/plugins`), and `src/features` encapsulates domain-specific UI.
-- **Editor**: `refmd/app/src/features/edit-document` contains editor code. `MarkdownEditor.tsx` mounts Monaco lazily, `EditorLayout.tsx` handles responsive splits, and `Toolbar.tsx` wires formatting actions.
+- **Editor**: `refmd/app/src/features/edit-document` contains the editor. `Editor.tsx` mounts Monaco lazily, `EditorLayout.tsx` handles responsive splits, and `Toolbar.tsx` wires formatting actions.
 - **Preview pipeline**: `ui/Markdown.tsx` calls `MarkdownService.renderMarkdown`, then runs `upgradeAll` from `entities/document/wc` to hydrate attachments, wiki links, and other custom elements. Scroll synchronisation is handled via `useScrollSync`, while uploads and Vim mode live in `useEditorUploads` and dynamic `monaco-vim` imports.
 - **API client**: OpenAPI definitions are generated from the backend via `npm run gen:api`. The resulting typed fetchers live in `src/shared/api/client`.
 - **State**: TanStack Query caches API responses (documents, shares, plugins) while lightweight context providers manage editor-specific state.
