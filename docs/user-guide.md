@@ -28,7 +28,6 @@
 ## 6. Collaboration
 - Collaborators appear in the header; selecting an avatar scrolls to that user’s cursor. Coloured selections update in real time.
 - Connection status is indicated above the editor, clarifying whether you are live, reconnecting, or offline.
-- Theme (light/dark) and Vim mode can be toggled from the header controls.
 
 ## 7. Plugins
 - The Plugins page lists installed extensions, including scope (global or user), version, mounts, permissions, commands, author, and repository links.
