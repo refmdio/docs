@@ -12,6 +12,7 @@ nav:
       - Overview: plugins/index.md
       - Manifest Specification: plugins/manifest.md
       - Development Guide: plugins/development.md
+      - Plugin API Reference: plugins/api.md
 
 theme:
   name: material

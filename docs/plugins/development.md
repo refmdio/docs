@@ -1,149 +1,171 @@
 # Plugin Development Guide
 
-Follow this guide to build, package, and install a RefMD plugin. The [`sample-plugin/`](../../sample-plugin/) repository is the canonical reference; adapt it as you iterate.
+RefMD plugins are **backend-first**. Start by compiling an Extism WASI module that can answer host invocations; add a browser bundle only when you need UI beyond Markdown renderers and built-in affordances. This guide focuses on the recommended workflow. For concrete code see the full-stack [`sample-plugin/`](../../sample-plugin/) and the backend-only Markdown integration in [`mermaid-plugin/`](../../mermaid-plugin/).
+
+> 💡 **Why Extism?** Extism lets plugin authors choose their favourite language (Rust, Go, JavaScript/TypeScript, TinyGo, Python, and more) as long as it can compile to WASI. Rust examples are used here because the RefMD core team maintains them, but you can start from any language runtime listed on [extism.org](https://extism.org).
 
 ## Prerequisites
 
-- **Rust** stable with the `wasm32-wasip1` target (`rustup target add wasm32-wasip1`).
-- **Node.js** 20 or later with npm.
-- **Extism CLI (optional)** if you want to invoke the WASM module locally.
-- A running RefMD stack (`docker compose up -d` from the repo root).
+- Rust stable with the `wasm32-wasip1` target (`rustup target add wasm32-wasip1`).
+- Node.js 20+ (only if you plan to ship a frontend bundle).
+- Extism CLI (optional) for local WASM smoke tests.
+- A running RefMD stack (`docker compose up -d`).
 
-## Project Layout
+## Recommended Workflow
 
+1. Create a Rust crate under `backend/` and expose `exec` (and optionally `render`) via `#[plugin_fn]` exports.
+2. Design the actions your plugin responds to and the **effects** each action returns. Effects tell the host what to do; most plugins never touch the database or HTTP APIs directly.
+3. Install the ZIP into a local RefMD instance, exercise the actions, and watch the API logs for errors.
+4. Add a frontend only if you need custom UI (dashboards, tool panels, etc.). Markdown-only plugins can stop here.
+
+## Backend Essentials
+
+`backend/Cargo.toml` template:
+
+```toml
+[dependencies]
+extism-pdk = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+htmlescape = "0.3" # Handy when escaping Markdown renderer output
 ```
-my-plugin/
-├── backend/              # Rust crate compiled to wasm32-wasip1
-│   └── src/lib.rs        # Extism entry point (`exec`)
-├── frontend/             # ESM bundle built with @refmdio/plugin-sdk
-│   ├── src/index.ts
-│   └── dist/index.mjs    # Output consumed by RefMD
-├── plugin.json           # Manifest (see Manifest Specification)
-└── README.md
+
+Minimal `exec` entry point:
+
+```rust
+use extism_pdk::*;
+use serde::{Deserialize, Serialize};
+
+#[derive(Deserialize)]
+struct ExecInput {
+    action: String,
+    payload: serde_json::Value,
+    ctx: serde_json::Value,
+}
+
+#[derive(Serialize, Default)]
+struct ExecOutput {
+    ok: bool,
+    data: Option<serde_json::Value>,
+    effects: Vec<serde_json::Value>,
+    error: Option<serde_json::Value>,
+}
+
+#[plugin_fn]
+pub fn exec(input: Json<ExecInput>) -> FnResult<Json<ExecOutput>> {
+    let req = input.0;
+    let mut out = ExecOutput::default();
+
+    match req.action.as_str() {
+        "my-plugin.create" => {
+            out.ok = true;
+            out.effects.push(serde_json::json!({
+                "type": "createDocument",
+                "title": "New doc from plugin",
+            }));
+            out.effects.push(serde_json::json!({
+                "type": "putKv",
+                "key": "meta",
+                "value": { "createdBy": "my-plugin" }
+            }));
+        }
+        _ => {
+            out.error = Some(serde_json::json!({
+                "code": "UNKNOWN_ACTION",
+                "action": req.action,
+            }));
+        }
+    }
+
+    Ok(Json(out))
+}
 ```
 
-Keep build scripts and the manifest alongside these directories so CI can package the archive easily.
-
-## Backend (Extism)
-
-1. Create a Rust crate under `backend/` and add `extism-pdk` plus `serde` dependencies.
-2. Implement an `exec` function annotated with `#[plugin_fn]`. It receives JSON input `{ action, payload, ctx }` and must return `{ ok, data, effects, error }`.
-3. Emit **effects** to ask the host to perform work. The backend currently understands:
-   - `createDocument`
-   - `putKv`
-   - `createRecord`
-   - `updateRecord`
-   - `deleteRecord`
-   - `navigate`
-   - `log`
-
-   Any other effects are forwarded to the frontend module for client-side handling (for example `showToast`).
-4. Validate required fields (document IDs, record IDs) and return structured errors (`{ "code": "BAD_REQUEST" }`) so the host can prompt the user.
-5. Compile the crate:
+Build with:
 
 ```bash
 cd backend
 cargo build --release --target wasm32-wasip1
+cp target/wasm32-wasip1/release/<crate>.wasm backend/plugin.wasm
 ```
 
-Copy `target/wasm32-wasip1/release/<crate>.wasm` to `backend/plugin.wasm` before packaging.
+## Working with Markdown Renderers
 
-## Frontend (ESM)
+Expose a `render` function when you want to influence Markdown output. The Mermaid plugin renders Mermaid code blocks entirely from the backend:
 
-1. Scaffold a TypeScript project under `frontend/` and install the SDK:
+```rust
+#[derive(Serialize, Default)]
+struct RenderOutput {
+    ok: bool,
+    html: Option<String>,
+    warnings: Option<Vec<String>>,
+    error: Option<String>,
+}
 
-```bash
-cd frontend
-npm install
-npm install @refmdio/plugin-sdk
-```
-
-2. Use `@refmdio/plugin-sdk` helpers to render UI and talk to the host:
-
-```ts
-import { createKit, resolveDocId } from '@refmdio/plugin-sdk'
-
-export async function mount(container: Element, host: any) {
-  const kit = createKit(host)
-  const state = { docId: host?.context?.docId || resolveDocId(), message: '' }
-
-  kit.store({
-    container,
-    initialState: state,
-    render: (current, set) => kit.card({
-      title: 'My Plugin',
-      body: kit.fragment(
-        kit.input({ value: current.message, onInput: (v) => set({ message: v }) }),
-        kit.button({
-          label: 'Say hello',
-          onClick: () => host.exec('my-plugin.hello', { docId: current.docId }),
-        }),
-      ),
-    }),
-  })
+#[plugin_fn]
+pub fn render(input: Json<serde_json::Value>) -> FnResult<Json<RenderOutput>> {
+    let code = input.0.get("code").and_then(|v| v.as_str()).unwrap_or("");
+    let mut out = RenderOutput::default();
+    out.ok = true;
+    out.html = Some(format!(
+        "<pre class=\"refmd-mermaid-code\"><code class=\"language-mermaid\">{}</code></pre>",
+        htmlescape::encode_minimal(code)
+    ));
+    Ok(Json(out))
 }
 ```
 
-3. Implement optional lifecycle exports:
-   - `exec(action, { host, payload })` — run purely in the browser when the host invokes a command.
-   - `canOpen(docId, ctx)` / `getRoute(docId, ctx)` — claim ownership of certain documents and reroute `/document/:id` to your custom route.
+Declare the renderer in `plugin.json`:
 
-4. Build the bundle (the sample project uses esbuild):
-
-```bash
-npm run build
-# Produces frontend/dist/index.mjs
+```json
+"renderers": [
+  {
+    "kind": "mermaid",
+    "function": "render",
+    "hydrate": { "module": "assets/hydrate.js" }
+  }
+]
 ```
 
-Match the output path to the manifest entry (for example `"frontend": { "entry": "dist/index.mjs" }`).
+`hydrate.module` lets you ship a lightweight browser module (for example to load Mermaid JS and draw the final SVG). If Markdown enhancements are sufficient, you can skip a full frontend entirely.
 
-## Host APIs
+## Optional Frontend
 
-The host object injected into frontend modules exposes:
+Create a frontend only when you need richer UI:
 
-- `host.exec(action, payload?)` — call the backend Extism action.
-- `host.api.renderMarkdown(text, options?)` — reuse the server renderer.
-- `host.api.listRecords(pluginId, docId, kind)` — manage structured plugin records.
-- `host.api.createRecord/patchRecord/deleteRecord` — CRUD helpers for records.
-- `host.api.getKv/putKv` — scoped key/value storage.
-- `host.api.uploadFile(docId, file)` — reuse the standard upload pipeline.
-- `host.ui.hydrateAll(element)` — upgrade markdown placeholders (attachments, wiki links).
-- `host.toast(level, message)` — surface feedback through the native toast component.
-- `host.context` — contains `docId`, `route`, `token`, and `mode` (`primary` or `secondary`).
+1. Initialise the project:
+   ```bash
+   cd frontend
+   npm install
+   npm install @refmdio/plugin-sdk
+   ```
+2. Export `mount(container, host)` and use SDK helpers (`createKit`, `markdownPreview`, etc.) to integrate with the host UI.
+3. Implement lifecycle hooks when needed:
+   - `exec(action, { host, payload })`
+   - `canOpen(docId, ctx)` / `getRoute(docId, ctx)`
+4. Build the bundle (the sample plugin uses esbuild) and point `plugin.json.frontend.entry` at the output file (for example `dist/index.mjs`).
 
-## Working with Records and KV
+## Packaging Checklist
 
-- Records live in the `plugin_records` table and map to `/api/plugins/:plugin/docs/:docId/records/:kind`.
-- KV entries live in `plugin_kv` and are keyed by `(plugin, scope, scope_id, key)`. Use scope `doc` for document-specific metadata.
-- The backend automatically persists `createRecord`, `updateRecord`, `deleteRecord`, and `putKv` effects.
+1. Gather artefacts: `backend/plugin.wasm`, optional `frontend/dist/index.mjs`, optional assets (for example `assets/hydrate.js`), and `plugin.json`.
+2. Verify paths inside `plugin.json` match the files you plan to ship.
+3. Create the ZIP:
+   ```bash
+   zip -r my-plugin.zip plugin.json backend frontend assets
+   ```
+   Omit directories you do not use.
 
-## Packaging
+## Installing & Validating
 
-1. Ensure the build artefacts exist:
-   - `backend/plugin.wasm`
-   - `frontend/dist/index.mjs`
-   - `plugin.json`
-2. Confirm `plugin.json` uses paths that exist inside the archive (for example `"frontend": { "entry": "dist/index.mjs" }`).
-3. Create a ZIP with relative paths only:
-
-```bash
-zip -r my-plugin.zip plugin.json backend frontend/dist/index.mjs
-```
-
-Upload `my-plugin.zip` to a location RefMD can reach (GitHub Release asset, S3 bucket, etc.).
-
-## Installing in RefMD
-
-1. Sign in to RefMD and open **Plugins** (`/plugins`).
-2. Choose **Install from URL** and paste the direct link to your ZIP.
-3. After installation the manifest appears in the list. Toolbar commands (from `ui.toolbar`) become available immediately.
-4. Use `ui.fileTree.identify` or custom routes to surface documents created by the plugin.
+1. Open **Plugins** (`/plugins`) in RefMD and install from the ZIP URL.
+2. Ensure commands defined under `ui.toolbar` appear, and that any renderers influence Markdown as expected.
+3. Call `/api/me/plugins/manifest` to confirm the manifest was parsed correctly.
+4. Watch `docker compose logs -f api` for Extism runtime output during testing.
 
 ## Debugging Tips
 
-- Watch the browser console for module import or hydration errors. The host logs issues with resolving `frontend.entry`.
-- Server-side errors from Extism are logged by the API process. Run `docker compose logs -f api` during development.
-- Inspect `/api/me/plugins/manifest` to view the merged manifest the client receives.
-- If a command returns `error.code = "BAD_REQUEST"` mentioning `docId`, the host prompts the user to pick a document and retries.
+- Emit `log` effects to inspect intermediate values during backend execution.
+- Renderer errors leave placeholders untouched; return `warnings` or `error` strings to bubble details into the logs.
+- When a frontend is present, monitor the browser console and `/api/plugins/.../exec/...` network calls for failures.
 
-Once your plugin is stable, publish a release so others can install it directly from your repository.
+Focus on the backend first—most RefMD plugins ship successfully without any custom JavaScript. Layer UI enhancements only when the use case demands it.
