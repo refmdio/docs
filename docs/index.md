@@ -4,7 +4,7 @@ RefMD is a real-time, collaborative Markdown workspace that teams can extend thr
 
 ## Guideposts
 
-- [Editor Guide](editor.md) explains the UI, collaboration features, and Markdown tooling that ship with the core product.
+- [User Guide](user-guide.md) explains everyday workflows such as creating documents, sharing content, and collaborating in real time.
 - [System Architecture](architecture.md) shows how the Rust backend, Vite-powered frontend, realtime bridge, and plugin runtime fit together.
 - [Plugin Platform](plugins/index.md) gathers the manifest reference and development workflow for building Extism-powered plugins.
 
