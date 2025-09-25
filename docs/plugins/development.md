@@ -147,13 +147,28 @@ Create a frontend only when you need richer UI:
 
 ## Packaging Checklist
 
-1. Gather artefacts: `backend/plugin.wasm`, optional `frontend/dist/index.mjs`, optional assets (for example `assets/hydrate.js`), and `plugin.json`.
-2. Verify paths inside `plugin.json` match the files you plan to ship.
-3. Create the ZIP:
+Your ZIP **must** mirror the paths referenced in `plugin.json`. A minimal layout looks like:
+
+```
+plugin.zip
+├── plugin.json
+├── backend/
+│   └── plugin.wasm
+├── index.mjs            # if frontend.entry = "index.mjs"
+└── assets/
+    └── hydrate.js      # optional hydration module
+```
+
+1. Copy the compiled WASM module into `backend/plugin.wasm`.
+2. Copy or rename your frontend bundle so that it matches `frontend.entry` (the sample plugin renames `frontend/dist/index.mjs` to `index.mjs` at the archive root).
+3. Add any additional assets (for example `assets/hydrate.js`) and ensure all paths are relative—no leading `/` or `..`.
+4. Create the archive:
    ```bash
-   zip -r my-plugin.zip plugin.json backend frontend assets
+   (cd dist && zip -r ../my-plugin.zip .)
    ```
-   Omit directories you do not use.
+   Here `dist` represents the directory containing the final layout shown above.
+
+See `sample-plugin/.github/workflows/build-plugin.yml` for a CI script that performs these steps automatically.
 
 ## Installing & Validating
 

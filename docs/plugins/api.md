@@ -4,7 +4,7 @@ This page summarises the host-facing APIs available to RefMD plugins: effect pay
 
 ## Effect Catalogue
 
-Return effects from the Extism backend (`ExecOutput.effects`). Recognised effects are applied server-side; unknown effects are forwarded to the frontend bundle, allowing custom handling.
+Return effects from the Extism backend (`ExecOutput.effects`). `ExecutePluginAction` applies recognised server-side effects (documents, records, KV, logging) before handing the response back to the browser; every effect that is not handled on the server is forwarded to the frontend bundle, allowing custom handling.
 
 ### Document & Data Effects
 
@@ -21,9 +21,9 @@ Return effects from the Extism backend (`ExecOutput.effects`). Recognised effect
 
 | `type`     | Fields                  | Description |
 |------------|-------------------------|-------------|
-| `navigate` | `to`                     | Triggers a client-side navigation. Use `:createdDocId` as a placeholder for the ID returned by `createDocument` in the same response. |
+| `navigate` | `to`                     | Server substitutes `:createdDocId` with the document created earlier in the response (if any) and forwards the effect to the frontend host, which performs the navigation. |
 | `log`      | `message`, optional `level` (`info` default) | Emits a structured log entry on the server (useful for debugging). |
-| `showToast`| `message`, optional `level` (`info`, `success`, `warning`, `error`) | Not handled server-side; forwarded to the frontend bundle for display, as demonstrated by `sample-plugin`. |
+| `showToast`| `message`, optional `level` (`info`, `success`, `warning`/`warn`, `error`) | Not handled server-side; forwarded to the frontend bundle for display, as demonstrated by `sample-plugin`. |
 
 Unknown effect types are copied verbatim into the JSON response and delivered to the frontend (if present). Use this channel for custom client-side behaviours.
 
@@ -73,14 +73,17 @@ When a frontend bundle is loaded, RefMD calls `mount(container, host)`. The `hos
 
 | Member | Description |
 |--------|-------------|
-| `host.exec(action, payload?)` | Invokes the backend `exec` function for `action`. Returns `{ ok, data, effects, error }`. Any effects included are already applied server-side; unrecognised ones should be handled client-side. |
-| `host.toast(level, message)` | Displays a toast using the native UI (`level` one of `info`, `success`, `warning`, `error`). |
+| `host.exec(action, payload?)` | Invokes the backend `exec` export. Returns `{ ok, data, effects, error }`; effects that remain in the array were not consumed on the server (for example `navigate`, `showToast`) and should be handled in the frontend. |
+| `host.navigate(to)` | Routes within RefMD when possible and falls back to `window.location`. Useful when a backend effect requested navigation but you need custom logic. |
+| `host.toast(level, message)` | Displays a toast using the native UI (`level` supports `info`, `success`, `warning`, `warn`, `error`). |
 | `host.origin` | Base origin for the API endpoints (useful when building absolute URLs). |
 
 ### REST Helpers (`host.api`)
 
 | Method | Purpose |
 |--------|---------|
+| `me()` | Resolves the current user (`GET /api/auth/me`). |
+| `createDocument(title, parentId?, type?)` | Creates a document on behalf of the user, mirroring the native file-tree behaviour. |
 | `renderMarkdown(text, options?)` | Calls the server-side Markdown renderer and returns `{ html }`. |
 | `renderMarkdownMany(items)` | Batch renders multiple snippets (if enabled on the host). |
 | `listRecords(pluginId, docId, kind, token?)` | Fetches plugin records. |
@@ -97,6 +100,11 @@ When a frontend bundle is loaded, RefMD calls `mount(container, host)`. The `hos
 |--------|-------------|
 | `hydrateAll(root)` | Upgrades RefMD-specific web components (attachments, wiki links, etc.) within `root`. |
 | `hydrateAttachments(root)` / `hydrateWikiLinks(root)` | Narrower hydration helpers used by built-in features. |
+
+### Dependencies (`host.dependencies`)
+
+- `yjs()` — Lazy-loads the shared `yjs` module used by the host. Use this to stay aligned with the runtime’s version when you need CRDT primitives.
+- `yWebsocket()` — Lazy-loads the host’s `y-websocket` client so plugins can join realtime rooms without shipping their own bundle copies.
 
 ### Context
 

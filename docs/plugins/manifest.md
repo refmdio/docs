@@ -14,13 +14,6 @@ Every plugin ships with a `plugin.json` file at the root of its distribution ZIP
   "frontend": { "entry": "index.mjs", "mode": "esm" },
   "backend": { "wasm": "backend/plugin.wasm" },
   "permissions": ["doc.read", "doc.write"],
-  "commands": [
-    "sample.create",
-    "sample.hello",
-    "sample.create_record",
-    "sample.update_record",
-    "sample.delete_record"
-  ],
   "ui": {
     "toolbar": [{ "title": "New Sample Document", "action": "sample.create" }],
     "fileTree": {
@@ -43,8 +36,8 @@ Every plugin ships with a `plugin.json` file at the root of its distribution ZIP
 | `frontend.entry` | string | ✓ (if frontend present) | Relative path (within the archive) to the ESM bundle. Resolved via `/api/plugin-assets/...`. |
 | `frontend.mode` | string | – | Only `"esm"` is currently supported. Lowercase `esm` is assumed when omitted. |
 | `backend.wasm` | string | ✓ (if backend present) | Relative path to the Extism WASM module. Defaults to `backend/plugin.wasm` if missing. |
-| `permissions` | string[] | – | Requested host capabilities. Recognised values today are `doc.read` and `doc.write`; future releases may add more. |
-| `commands` | string[] | – | Canonical action names implemented by the backend (for example `sample.create`). The host surfaces them in the Plugins UI. |
+| `permissions` | string[] | – | Requested host capabilities. The host surfaces them for display today; common values are `doc.read` and `doc.write`. |
+| `commands` | string[] | – | Reserved for future use. The host currently ignores this field and instead derives actionable commands from `ui.toolbar`. |
 | `config` | object | – | Arbitrary JSON blob stored alongside the manifest. Useful for static plugin configuration. |
 | `ui.toolbar` | array | – | Adds buttons to the Plugins page or command palette. Each item accepts `title` and `action`. |
 | `ui.fileTree` | object | – | Controls file-tree decorations: `icon` (Lucide icon name) and optional `identify` rules. `kvFlag` rules check plugin KV (scope `doc`) before attaching the icon. |
