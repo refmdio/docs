@@ -1,6 +1,6 @@
 # Quick Start
 
-## 1. Deploy with docker-compose
+## Option A: Run with docker-compose
 
 1. Create a working directory:
    ```bash
@@ -68,9 +68,9 @@
 
    Update the environment variables before starting containers:
    - `JWT_SECRET`, `ENCRYPTION_KEY`: replace with strong, random values.
-  - `FRONTEND_URL`, `BACKEND_URL`: set to the public domain for the app/API (`http://localhost:3000` and `http://localhost:8888` locally, `https://refmd.example.com` in production when reverse proxying `/api`).
-  - Ensure your reverse proxy forwards `/api` on the frontend origin to the API service.
-  - `VITE_API_BASE_URL`: match the external API origin exposed to users (e.g. `http://localhost:8888` locally, `https://refmd.example.com/api` behind a proxy).
+   - `FRONTEND_URL`, `BACKEND_URL`: set to the public domain for the app/API (`http://localhost:3000` and `http://localhost:8888` locally, `https://refmd.example.com` in production when reverse proxying `/api`).
+   - Ensure your reverse proxy forwards `/api` on the frontend origin to the API service.
+   - `VITE_API_BASE_URL`: match the external API origin exposed to users (e.g. `http://localhost:8888` locally, `https://refmd.example.com/api` behind a proxy).
 
 3. Start the stack:
    ```bash
@@ -85,9 +85,7 @@
 
 5. Open `http://localhost:3000` (or your configured domain) and create the first account.
 
-## 2. Publish behind Nginx reverse proxy
-
-Nginx configuration forwarding traffic to the containers launched above:
+### Publish the docker-compose stack behind Nginx
 
 ```nginx
 server {
@@ -118,9 +116,7 @@ server {
 }
 ```
 
-## 3. Publish behind Caddy reverse proxy
-
-Example configuration for Caddy:
+### Publish the docker-compose stack behind Caddy
 
 ```caddyfile
 refmd.example.com {
@@ -135,3 +131,76 @@ refmd.example.com {
     }
 }
 ```
+
+## Option B: Deploy with Helm
+
+1. Register the Helm repository and refresh indices.
+   ```bash
+   helm repo add refmd https://refmdio.github.io/charts
+   helm repo update
+   ```
+
+2. Create `values.yaml` that captures your domain and secrets (store the secrets securely—this example keeps them inline for brevity):
+   ```yaml
+   # values.yaml
+   api:
+     env:
+       FRONTEND_URL: https://refmd.example.com
+       BACKEND_URL: https://refmd.example.com
+     secrets:
+       JWT_SECRET: replace-with-strong-secret
+       ENCRYPTION_KEY: replace-with-strong-secret
+     persistence:
+       data:
+         enabled: true
+       plugins:
+         enabled: true
+     ingress:
+       enabled: true
+       className: nginx
+       hosts:
+         - host: refmd.example.com
+           paths:
+             - path: /api
+               pathType: Prefix
+       tls:
+         - hosts:
+             - refmd.example.com
+           secretName: refmd-tls
+
+   app:
+     env:
+       VITE_API_BASE_URL: https://refmd.example.com
+     ingress:
+       enabled: true
+       className: nginx
+       hosts:
+         - host: refmd.example.com
+           paths:
+             - path: /
+               pathType: Prefix
+       tls:
+         - hosts:
+             - refmd.example.com
+           secretName: refmd-tls
+
+   postgres:
+     persistence:
+       enabled: true
+   ```
+
+3. Install or upgrade the release:
+   ```bash
+   helm upgrade --install refmd refmd/refmd \
+     --namespace refmd \
+     --create-namespace \
+     --values values.yaml
+   ```
+
+4. Verify the rollout:
+   ```bash
+   kubectl get pods -n refmd
+   kubectl get svc -n refmd
+   ```
+
+5. Create the TLS secret referenced above (for example, `kubectl create secret tls refmd-tls ... -n refmd`) and confirm your ingress controller picks up the new routes. Adjust annotations/class names to match your environment.
