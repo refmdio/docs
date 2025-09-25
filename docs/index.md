@@ -15,7 +15,7 @@ RefMD is a real-time, collaborative Markdown workspace that teams can extend thr
 - When you see the term *host*, it refers to the RefMD application that loads and runs plugins.
 
 !!! tip "Need to explore the code?"
-    The [`sample-plugin/`](../sample-plugin/) repository contains a complete reference implementation. The [`@refmdio/plugin-sdk`](../plugin-sdk/) package provides the client utilities reused in examples throughout these docs.
+    The [`sample-plugin`](https://github.com/refmdio/sample-plugin) repository contains a complete reference implementation. The [`@refmdio/plugin-sdk`](https://github.com/refmdio/plugin-sdk) package provides the client utilities reused in examples throughout these docs.
 
 ## Getting Help
 

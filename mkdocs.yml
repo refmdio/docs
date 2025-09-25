@@ -1,7 +1,7 @@
 site_name: RefMD Documentation
 site_description: Official guide for using, operating, and extending RefMD.
-repo_url: https://github.com/refmdio/refmdio
-repo_name: refmdio/refmdio
+repo_url: https://github.com/refmdio/refmd
+repo_name: refmdio/refmd
 edit_uri: edit/main/docs/
 
 nav:

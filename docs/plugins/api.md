@@ -13,7 +13,7 @@ Return effects from the Extism backend (`ExecOutput.effects`). `ExecutePluginAct
 | `createDocument`| `title`, optional `docType`, optional `parentId` | Creates a document owned by the invoking user. The resulting document ID is made available to subsequent effects in the same response (for example `putKv`). |
 | `putKv`         | `key`, `value`, optional `docId`, optional `scope` (`doc` default) | Stores arbitrary JSON in the plugin KV store. `docId` defaults to the document created earlier in the response. |
 | `getKv`         | _Not supported as an effect_; use the REST API instead. |
-| `createRecord`  | `docId`, `kind`, `data`                     | Inserts a structured record into `plugin_records`. |
+| `createRecord`  | `docId` (optional when used after `createDocument`), `kind`, `data` | Inserts a structured record into `plugin_records`. When `docId` is omitted, the host reuses the document created earlier in the same response. |
 | `updateRecord`  | `recordId`, `patch`                         | Partially updates a record (JSON merge). |
 | `deleteRecord`  | `recordId`                                  | Deletes a record. |
 
@@ -75,7 +75,7 @@ When a frontend bundle is loaded, RefMD calls `mount(container, host)`. The `hos
 |--------|-------------|
 | `host.exec(action, payload?)` | Invokes the backend `exec` export. Returns `{ ok, data, effects, error }`; effects that remain in the array were not consumed on the server (for example `navigate`, `showToast`) and should be handled in the frontend. |
 | `host.navigate(to)` | Routes within RefMD when possible and falls back to `window.location`. Useful when a backend effect requested navigation but you need custom logic. |
-| `host.toast(level, message)` | Displays a toast using the native UI (`level` supports `info`, `success`, `warning`, `warn`, `error`). |
+| `host.toast(level, message)` | Displays a toast using the native UI (`level` supports `info`, `success`, `warning`, `error`). |
 | `host.origin` | Base origin for the API endpoints (useful when building absolute URLs). |
 
 ### REST Helpers (`host.api`)

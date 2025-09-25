@@ -1,6 +1,6 @@
 # Plugin Development Guide
 
-RefMD plugins are **backend-first**. Start by compiling an Extism WASI module that can answer host invocations; add a browser bundle only when you need UI beyond Markdown renderers and built-in affordances. This guide focuses on the recommended workflow. For concrete code see the full-stack [`sample-plugin/`](../../sample-plugin/) and the backend-only Markdown integration in [`mermaid-plugin/`](../../mermaid-plugin/).
+RefMD plugins are **backend-first**. Start by compiling an Extism WASI module that can answer host invocations; add a browser bundle only when you need UI beyond Markdown renderers and built-in affordances. This guide focuses on the recommended workflow. For concrete code see the full-stack [`sample-plugin`](https://github.com/refmdio/sample-plugin) and the backend-only Markdown integration in [`mermaid-plugin`](https://github.com/refmdio/mermaid-plugin).
 
 > 💡 **Why Extism?** Extism lets plugin authors choose their favourite language (Rust, Go, JavaScript/TypeScript, TinyGo, Python, and more) as long as it can compile to WASI. Rust examples are used here because the RefMD core team maintains them, but you can start from any language runtime listed on [extism.org](https://extism.org).
 
@@ -168,7 +168,7 @@ plugin.zip
    ```
    Here `dist` represents the directory containing the final layout shown above.
 
-See `sample-plugin/.github/workflows/build-plugin.yml` for a CI script that performs these steps automatically.
+See [`sample-plugin/.github/workflows/build-plugin.yml`](https://github.com/refmdio/sample-plugin/blob/main/.github/workflows/build-plugin.yml) for a CI script that performs these steps automatically.
 
 ## Installing & Validating
 
