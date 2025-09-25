@@ -6,7 +6,8 @@ edit_uri: edit/main/docs/
 
 nav:
   - Overview: index.md
-  - User Guide: user-guide.md
+  - Quick Start: quick-start.md
+  - Feature Overview: feature-overview.md
   - System Architecture: architecture.md
   - Plugin Platform:
       - Overview: plugins/index.md

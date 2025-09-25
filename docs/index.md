@@ -4,7 +4,8 @@ RefMD is a real-time, collaborative Markdown workspace that teams can extend thr
 
 ## Guideposts
 
-- [User Guide](user-guide.md) explains everyday workflows such as creating documents, sharing content, and collaborating in real time.
+- [Quick Start](quick-start.md) shows how to deploy RefMD with docker-compose and expose it through a reverse proxy.
+- [Feature Overview](feature-overview.md) catalogues the major capabilities available to workspace users and administrators.
 - [System Architecture](architecture.md) shows how the Rust backend, Vite-powered frontend, realtime bridge, and plugin runtime fit together.
 - [Plugin Platform](plugins/index.md) gathers the manifest reference and development workflow for building Extism-powered plugins.
 
