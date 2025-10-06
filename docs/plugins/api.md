@@ -83,16 +83,25 @@ When a frontend bundle is loaded, RefMD calls `mount(container, host)`. The `hos
 | Method | Purpose |
 |--------|---------|
 | `me()` | Resolves the current user (`GET /api/auth/me`). |
-| `createDocument(title, parentId?, type?)` | Creates a document on behalf of the user, mirroring the native file-tree behaviour. |
 | `renderMarkdown(text, options?)` | Calls the server-side Markdown renderer and returns `{ html }`. |
 | `renderMarkdownMany(items)` | Batch renders multiple snippets (if enabled on the host). |
 | `listRecords(pluginId, docId, kind, token?)` | Fetches plugin records. |
-| `createRecord(pluginId, docId, kind, data, token?)` | Creates a record. |
-| `patchRecord(pluginId, id, patch)` | Partially updates a record. |
-| `deleteRecord(pluginId, id)` | Deletes a record. |
 | `getKv(pluginId, docId, key, token?)` | Retrieves a KV entry. |
-| `putKv(pluginId, docId, key, value, token?)` | Stores a KV entry. |
-| `uploadFile(docId, file)` | Reuses RefMD’s file upload pipeline. |
+| `uploadFile(docId, file)` | Reuses RefMD’s file upload pipeline (mutating helper; slated to move behind backend actions). |
+
+> **Backend first.** Every state-changing operation (documents, records, KV) should originate in the Extism backend via effects like `createDocument`, `putKv`, `createRecord`, etc. The browser host only exposes read helpers so that permission enforcement and auditing remain centralised on the server.
+
+### Host Utility Actions (`host.exec`)
+
+The host reserves a small namespace of built-in actions that frontends can invoke via `host.exec(...)`:
+
+| Action | Payload | Description |
+|--------|---------|-------------|
+| `host.records.list` | `{ docId, kind, token? }` | Returns `{ items }` mirroring `GET /api/plugins/:plugin/docs/:doc_id/records/:kind`. |
+| `host.kv.get` | `{ docId, key, token? }` | Fetches a KV entry for the active plugin. |
+| `host.files.upload` | `{ docId, file }` | Uploads a file and returns the API response (temporary convenience while backends adopt upload flows). |
+
+These helpers keep reads and uploads available during the transition; mutating operations must still originate in the Extism backend.
 
 ### UI Helpers (`host.ui`)
 
