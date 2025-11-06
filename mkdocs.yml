@@ -9,6 +9,8 @@ nav:
   - Quick Start: quick-start.md
   - Feature Overview: feature-overview.md
   - System Architecture: architecture.md
+  - Integrations:
+      - MCP Server: mcp-server.md
   - Plugin Platform:
       - Overview: plugins/index.md
       - Manifest Specification: plugins/manifest.md
